@@ -1,0 +1,34 @@
+{
+  "name": "@whooot/api",
+  "private": true,
+  "version": "0.0.1",
+  "description": "Whooot! - Free, Open-Source, Party Quiz",
+  "scripts": {
+    "build": "nitro build",
+    "dev": "nitro dev",
+    "prepare": "nitro prepare",
+    "preview": "node .output/server/index.mjs"
+  },
+  "devDependencies": {
+    "nitropack": "^2.10.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/whooot-studio/api.git"
+  },
+  "keywords": [
+    "kahoot",
+    "quiz",
+    "foss",
+    "free",
+    "open-source",
+    "game",
+    "multiplayer"
+  ],
+  "author": "Josselin Dulongcourty <contact@josselinonduty.fr>",
+  "license": "LGPL-2.1-or-later",
+  "bugs": {
+    "url": "https://github.com/whooot-studio/api/issues"
+  },
+  "homepage": "https://github.com/whooot-studio/api#readme"
+}
