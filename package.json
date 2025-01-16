@@ -10,6 +10,7 @@
     "preview": "node .output/server/index.mjs"
   },
   "devDependencies": {
+    "crossws": "^0.3.1",
     "nitropack": "^2.10.4"
   },
   "repository": {
@@ -30,5 +31,9 @@
   "bugs": {
     "url": "https://github.com/whooot-studio/api/issues"
   },
-  "homepage": "https://github.com/whooot-studio/api#readme"
+  "homepage": "https://github.com/whooot-studio/api#readme",
+  "dependencies": {
+    "consola": "^3.3.3",
+    "redis": "^4.7.0"
+  }
 }

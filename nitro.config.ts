@@ -6,4 +6,12 @@ export default defineNitroConfig({
   experimental: {
     websocket: true,
   },
+
+  runtimeConfig: {
+    apiVersion: "",
+    redis: {
+      host: "",
+      port: "",
+    },
+  },
 });
