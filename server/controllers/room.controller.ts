@@ -1,4 +1,5 @@
 import consola from "consola";
+import { Game } from "~/types/Game";
 
 /**
  * Generate a random 8-character (uppercase) code
@@ -15,13 +16,18 @@ export class MalformedPayloadError extends Error {
   }
 }
 
-type User = string;
+type User = {
+  id: string;
+  name?: string;
+};
 
 type Room = {
   quiz: string;
-  members: User[];
   admin?: User;
-} & Record<string, any>;
+  members: User[];
+
+  game: Game;
+};
 
 const rooms = new Map<string, Room>();
 
@@ -30,9 +36,17 @@ const rooms = new Map<string, Room>();
  * @param quizId Quiz ID
  * @returns Room code
  */
-export async function createRoom(quizId: string) {
+export async function createRoom(quizId: string, delayMs: number) {
   const code = generateRandomCode();
-  rooms.set(code, { quiz: quizId, members: [] });
+
+  const game = new Game(+quizId, delayMs);
+  rooms.set(code, {
+    quiz: quizId,
+    members: [],
+    game,
+  });
+
+  await game.setup();
 
   consola.info(`[Room] created ${code} (${quizId})`);
 
@@ -80,45 +94,46 @@ export class MemberNotFoundError extends Error {
 
 /**
  * Get the room code of a member
- * @param member Member ID
+ * @param memberId Member ID
  * @returns Room code
  * @throws MemberNotFoundError
  */
-export async function getRoomOfMember(member: string) {
+export async function getRoomOfMember(memberId: string) {
   for (const [code, room] of rooms) {
-    if (room.members.includes(member)) return code;
+    if (room.members.some((member) => member.id === memberId)) return code;
   }
 
-  throw new MemberNotFoundError(member);
+  throw new MemberNotFoundError(memberId);
 }
 
 /**
  * Get the room code of an admin
- * @param admin Admin ID
+ * @param adminId Admin ID
  * @returns Room code
  * @throws MemberNotFoundError
  */
-export async function getRoomOfAdmin(admin: string) {
+export async function getRoomOfAdmin(adminId: string) {
   for (const [code, room] of rooms) {
-    if (room.admin === admin) return code;
+    if (room.admin?.id === adminId) return code;
   }
 
-  throw new MemberNotFoundError(admin);
+  throw new MemberNotFoundError(adminId);
 }
 
 /**
  * Get the status of a player
- * @param member Member ID
+ * @param memberId Member ID
  * @returns Status and room code
  * @throws MemberNotFoundError
  */
-export async function getStatusAndRoom(member: string) {
+export async function getStatusAndRoom(memberId: string) {
   for (const [code, room] of rooms) {
-    if (room.admin === member) return { status: "admin", code };
-    if (room.members.includes(member)) return { status: "member", code };
+    if (room.admin?.id === memberId) return { status: "admin", code };
+    if (room.members.some((member) => member.id === memberId))
+      return { status: "member", code };
   }
 
-  throw new MemberNotFoundError(member);
+  throw new MemberNotFoundError(memberId);
 }
 
 /**
@@ -152,13 +167,13 @@ export class MemberAlreadyExistsError extends Error {
 /**
  * Add a member to a room
  * @param code Room code
- * @param member Member ID
+ * @param memberId Member ID
  * @returns List of members
  * @throws RoomNotFoundError
  * @throws RoomFullError
  * @throws MemberAlreadyExistsError
  */
-export async function addMember(code: string, member: string) {
+export async function addMember(code: string, memberId: string, name?: string) {
   if (!rooms.has(code)) throw new RoomNotFoundError(code);
 
   const room = rooms.get(code) as Room;
@@ -168,20 +183,27 @@ export async function addMember(code: string, member: string) {
     throw new RoomFullError(code);
   }
 
-  if (room.members.includes(member)) {
-    consola.info(`[Room] ${member} already in ${code}`);
-    throw new MemberAlreadyExistsError(member);
+  if (room.members.some((member) => member.id === memberId)) {
+    consola.info(`[Room] ${memberId} already in ${code}`);
+    throw new MemberAlreadyExistsError(memberId);
   }
 
-  room.members.push(member);
-  consola.info(`[Room] ${member} joined ${code} (${room.members.length})`);
+  room.members.push({
+    id: memberId,
+    name,
+  });
+  consola.info(
+    `[Room] ${memberId} ${name ? "(" + name + ")" : ""} joined ${code} (${
+      room.members.length
+    })`
+  );
 
   return room.members;
 }
 
 export class MemberNotInRoomError extends Error {
-  constructor(member: string) {
-    super(`Member ${member} not in room`);
+  constructor(memberId: string) {
+    super(`Member ${memberId} not in room`);
     this.name = "MemberNotInRoomError";
   }
 }
@@ -193,21 +215,21 @@ export class MemberNotInRoomError extends Error {
  * @throws RoomNotFoundError
  * @throws MemberNotInRoomError
  */
-export async function removeMember(code: string, member: string) {
+export async function removeMember(code: string, memberId: string) {
   if (!rooms.has(code)) throw new RoomNotFoundError(code);
   const room = rooms.get(code) as Room;
 
   const oldLength = room.members.length;
-  room.members = room.members.filter((m) => m !== member);
+  room.members = room.members.filter((member) => member.id !== memberId);
 
   if (oldLength === room.members.length) {
-    consola.info(`[Room] ${member} not in ${code}`);
-    throw new MemberNotInRoomError(member);
+    consola.info(`[Room] ${memberId} not in ${code}`);
+    throw new MemberNotInRoomError(memberId);
   }
 
-  consola.info(`[Room] ${member} left ${code} (${room.members.length})`);
+  consola.info(`[Room] ${memberId} left ${code} (${room.members.length})`);
 
-  if (room.members.length === 0) deleteRoom(code);
+  if (room.members.length === 0 && !room.admin) deleteRoom(code);
 }
 
 /**
@@ -220,7 +242,9 @@ export async function setAdmin(code: string, admin: string) {
   if (!rooms.has(code)) throw new RoomNotFoundError(code);
   const room = rooms.get(code) as Room;
 
-  room.admin = admin;
+  room.admin = {
+    id: admin,
+  };
 
   consola.info(`[Room] ${admin} is now admin of ${code}`);
 }

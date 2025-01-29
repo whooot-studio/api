@@ -23,7 +23,7 @@ export default defineWebSocketHandler({
             const quizId = data.quiz;
             if (!quizId) return;
 
-            const code = await roomController.createRoom(quizId);
+            const code = await roomController.createRoom(quizId, 15000);
             await roomController.setAdmin(code, peer.id);
 
             peer.subscribe(`room:${code}`);
@@ -39,17 +39,56 @@ export default defineWebSocketHandler({
               throw new MalformedPayloadError(
                 "Action 'meta:join' requires a 'code'"
               );
+            let name = data.name;
+            if (!name) name = `Guest #${Math.floor(Math.random() * 1000)}`;
 
             const room = await roomController.getRoom(code);
             if (!room) return;
 
-            const members = await roomController.addMember(code, peer.id);
+            const members = await roomController.addMember(code, peer.id, name);
             peer.send({ action: "members:all", members });
             peer.publish(`room:${code}`, {
               action: "members:join",
-              member: peer.id,
+              member: members.find((member) => member.id === peer.id),
             });
             peer.subscribe(`room:${code}`);
+          }
+          break;
+
+        case "game:start":
+          {
+            const code = data.code; // TODO: Validate code
+            if (!code)
+              throw new MalformedPayloadError(
+                "Action 'game:start' requires a 'code'"
+              );
+
+            const room = await roomController.getRoom(code);
+            if (!room) return;
+
+            const admin = await roomController.getAdmin(code);
+            if (!admin || admin.id !== peer.id) return;
+
+            const game = room.game;
+            await game.start();
+            peer.publish(`room:${code}`, {
+              action: "game:start",
+            });
+
+            consola.info(`[Room] ${peer.id} started game in ${code}`);
+
+            const { question, options } = game.currentQuestion;
+            peer.publish(`room:${code}`, {
+              action: "game:question:start",
+              question,
+              options,
+            });
+
+            setTimeout(async () => {
+              peer.publish(`room:${code}`, {
+                action: "game:question:stop",
+              });
+            }, game.delayMs);
           }
           break;
 
@@ -110,7 +149,9 @@ export default defineWebSocketHandler({
         peer.unsubscribe(`room:${code}`);
         peer.publish(`room:${code}`, {
           action: "members:leave",
-          member: peer.id,
+          member: {
+            id: peer.id,
+          },
         });
       }
     } catch (error) {
