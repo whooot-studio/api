@@ -7,11 +7,17 @@
     "build": "nitro build",
     "dev": "nitro dev",
     "prepare": "nitro prepare",
-    "preview": "node .output/server/index.mjs"
+    "preview": "node .output/server/index.mjs",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "devDependencies": {
-    "crossws": "^0.3.1",
-    "nitropack": "^2.10.4"
+    "crossws": "^0.3.3",
+    "nitropack": "^2.10.4",
+    "prisma": "^6.3.0",
+    "tsx": "^4.19.2"
   },
   "repository": {
     "type": "git",
@@ -33,7 +39,8 @@
   },
   "homepage": "https://github.com/whooot-studio/api#readme",
   "dependencies": {
-    "consola": "^3.3.3",
+    "@prisma/client": "^6.3.0",
+    "consola": "^3.4.0",
     "redis": "^4.7.0"
   }
 }

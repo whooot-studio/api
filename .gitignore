@@ -136,3 +136,9 @@ dist
 .cache
 .output
 .env
+
+# Database
+*.sqlite
+*.sqlite-journal
+*.db
+*.db-journal
