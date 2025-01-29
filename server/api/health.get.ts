@@ -7,8 +7,8 @@ export default defineEventHandler(async (event) => {
     apiVersion: config.apiVersion,
 
     messageBroker: {
-      pub: redis.pub.isOpen && redis.pub.isReady ? "ok" : "error",
-      sub: redis.sub.isOpen && redis.sub.isReady ? "ok" : "error",
+      pub: redis?.pub && redis.pub.isOpen && redis.pub.isReady ? "ok" : "error",
+      sub: redis?.sub && redis.sub.isOpen && redis.sub.isReady ? "ok" : "error",
     },
   };
 });
