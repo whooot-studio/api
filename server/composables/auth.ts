@@ -13,6 +13,13 @@ export default function useAuth() {
   const auth = betterAuth({
     trustedOrigins: [client.origin],
     database: prismaAdapter(prisma, { provider: "sqlite" }),
+
+    user: {
+      deleteUser: {
+        enabled: true,
+      },
+    },
+
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
