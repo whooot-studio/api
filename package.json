@@ -40,7 +40,7 @@
   "homepage": "https://github.com/whooot-studio/api#readme",
   "dependencies": {
     "@prisma/client": "^6.3.0",
-    "better-auth": "^1.1.15",
+    "better-auth": "^1.1.16-beta.3",
     "consola": "^3.4.0",
     "redis": "^4.7.0",
     "zod": "^3.24.1"
