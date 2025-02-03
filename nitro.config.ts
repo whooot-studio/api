@@ -18,5 +18,21 @@ export default defineNitroConfig({
       port: "",
       protocol: "",
     },
+    discord: {
+      clientId: "",
+      clientSecret: "",
+    },
+    google: {
+      clientId: "",
+      clientSecret: "",
+    },
+    twitch: {
+      clientId: "",
+      clientSecret: "",
+    },
+    simplelogin: {
+      clientId: "",
+      clientSecret: "",
+    },
   },
 });
