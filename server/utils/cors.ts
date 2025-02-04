@@ -1,5 +1,6 @@
-import { H3CorsOptions } from "h3";
 import { defu } from "defu";
+import { H3CorsOptions } from "h3";
+import useClient from "~/composables/client";
 
 type CorsOptions = (Omit<H3CorsOptions, "origin"> & {
   origin?: H3CorsOptions["origin"] | "client";
@@ -16,8 +17,8 @@ export function cors(options?: CorsOptions) {
     });
 
     if (_options.origin === "client") {
-      const config = useRuntimeConfig(event).client;
-      _options.origin = `${config.protocol}://${config.host}:${config.port}`;
+      const config = useClient();
+      _options.origin = config.origin;
     }
 
     const handled = handleCors(event, _options as H3CorsOptions);
