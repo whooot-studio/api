@@ -1,7 +1,7 @@
 {
   "name": "@whooot/api",
   "private": true,
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Whooot! - Free, Open-Source, Party Quiz",
   "scripts": {
     "start:prod": "prisma migrate deploy && node .output/server/index.mjs",
