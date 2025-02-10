@@ -17,6 +17,8 @@ export default defineNitroConfig({
       host: "",
       port: "",
       protocol: "",
+      domain: "",
+      crossSubDomain: "",
     },
     discord: {
       clientId: "",

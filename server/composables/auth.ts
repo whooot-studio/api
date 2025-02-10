@@ -5,14 +5,21 @@ import { genericOAuth, organization } from "better-auth/plugins";
 import useClient from "./client";
 
 const prisma = new PrismaClient();
-const client = useClient();
 
 export default function useAuth() {
+  const client = useClient();
   const config = useRuntimeConfig();
 
   const auth = betterAuth({
     trustedOrigins: [client.origin],
     database: prismaAdapter(prisma, { provider: "sqlite" }),
+
+    advanced: {
+      crossSubDomainCookies: {
+        enabled: config.client.crossSubDomain === "true",
+        domain: client.domain,
+      },
+    },
 
     user: {
       deleteUser: {
