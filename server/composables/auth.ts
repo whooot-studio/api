@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { genericOAuth, organization } from "better-auth/plugins";
+import { genericOAuth, openAPI, organization } from "better-auth/plugins";
 import useClient from "./client";
 
 const prisma = new PrismaClient();
@@ -11,7 +11,7 @@ export default function useAuth() {
   const config = useRuntimeConfig();
 
   const auth = betterAuth({
-    trustedOrigins: [client.origin],
+    trustedOrigins: [client.origin, client.ssrOrigin],
     database: prismaAdapter(prisma, { provider: "sqlite" }),
 
     advanced: {
@@ -82,6 +82,7 @@ export default function useAuth() {
       }),
 
       organization(),
+      openAPI(),
     ],
   });
 
