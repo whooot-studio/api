@@ -1,5 +1,5 @@
-import consola from "consola";
-import quizController from "~/controllers/quiz.controller";
+import prisma from "~~/lib/prisma";
+import useAuth from "~/composables/auth";
 
 export default defineEventHandler({
   onRequest: [
@@ -8,12 +8,38 @@ export default defineEventHandler({
   ],
   handler: async (event) => {
     try {
-      const list = await quizController.listQuizzes();
+      const auth = useAuth();
+      const session = await auth.api.getSession({
+        headers: event.headers,
+      });
+      if (!session) return;
+      const user = session.user;
 
-      consola.info(`[Quiz] list ${list.length} quizzes`);
-      return list;
-    } catch (error) {
-      return sendError(event, error);
+      const quizzes = await prisma.quiz.findMany({
+        where: {
+          users: {
+            some: {
+              id: user.id,
+            },
+          },
+        },
+        include: {
+          users: {
+            select: {
+              id: true,
+              name: true,
+              image: true,
+            },
+          },
+        },
+      });
+
+      return quizzes;
+    } catch {
+      throw createError({
+        statusCode: 500,
+        statusMessage: "Internal Server Error",
+      });
     }
   },
 });
