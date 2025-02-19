@@ -28,28 +28,20 @@ export const pointsValidator = z
     required_error: "Points is required",
   })
   .int("Must be an integer")
-  .positive("Must be a positive number");
+  .min(0, "Must be a positive number");
 
 export const answerValidator = z
   .string({
     required_error: "Answer is required",
   })
   .max(4096, "Must be at most 4096 characters");
+export const answersValidator = answerValidator.or(z.array(answerValidator));
 
 export const QuestionCreateSchema = z.object({
   type: typeValidator,
   title: titleValidator,
   choices: choicesValidator,
   points: pointsValidator.optional(),
-  answer: answerValidator,
+  answer: answersValidator,
 });
-export type QuestionCreate = z.infer<typeof QuestionCreateSchema>;
-
-export const QuestionUpdateSchema = z.object({
-  type: typeValidator.optional(),
-  title: titleValidator.optional(),
-  choices: choicesValidator.optional(),
-  points: pointsValidator.optional(),
-  answer: answerValidator.optional(),
-});
-export type QuestionUpdate = z.infer<typeof QuestionUpdateSchema>;
+export type QuestionCreateSchema = z.infer<typeof QuestionCreateSchema>;
