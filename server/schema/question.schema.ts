@@ -9,7 +9,7 @@ export const typeValidator = z
 
 export const titleValidator = z
   .string({
-    required_error: "Title is required",
+    required_error: "Question is required",
   })
   .min(1, "Must not be empty")
   .max(255, "Must be at most 255 characters");
@@ -25,12 +25,15 @@ export const choicesValidator = z
   .array(choiceValidator)
   .nonempty("Must not be empty");
 
-export const pointsValidator = z
-  .number({
-    required_error: "Points is required",
-  })
-  .int("Must be an integer")
-  .min(0, "Must be a positive number");
+export const pointsValidator = z.preprocess(
+  (v) => (v === 0 ? 0 : v || undefined),
+  z
+    .number({
+      required_error: "Points is required",
+    })
+    .int("Must be an integer")
+    .nonnegative("Must be a non-negative number")
+);
 
 export const answerValidator = z
   .string({
@@ -41,11 +44,11 @@ export const answersValidator = answerValidator.or(
   z.array(answerValidator).nonempty("Must not be empty")
 );
 
-export const QuestionCreateSchema = z.object({
+export const QuestionSchema = z.object({
   type: typeValidator,
   title: titleValidator,
   choices: choicesValidator,
   points: pointsValidator,
   answer: answersValidator,
 });
-export type QuestionCreateSchema = z.infer<typeof QuestionCreateSchema>;
+export type QuestionSchema = z.infer<typeof QuestionSchema>;

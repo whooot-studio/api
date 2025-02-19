@@ -21,20 +21,13 @@ export const imageValidator = z
     required_error: "Image is required",
   })
   .trim()
-  .url("Must be a valid URL")
   .min(1, "Must not be empty")
+  .url("Must be a valid URL")
   .max(255, "Must be at most 255 characters");
 
-export const QuizCreateSchema = z.object({
+export const QuizSchema = z.object({
   title: titleValidator,
-  description: descriptionValidator.optional().or(z.literal("")),
-  image: imageValidator.optional().or(z.literal("")),
+  description: descriptionValidator.or(z.literal("")).optional(),
+  image: imageValidator.or(z.literal("")).optional(),
 });
-export type QuizCreateSchema = z.infer<typeof QuizCreateSchema>;
-
-export const QuizUpdateSchema = z.object({
-  title: titleValidator.optional(),
-  description: descriptionValidator.optional().or(z.literal("")),
-  image: imageValidator.optional().or(z.literal("")),
-});
-export type QuizUpdateSchema = z.infer<typeof QuizUpdateSchema>;
+export type QuizSchema = z.infer<typeof QuizSchema>;

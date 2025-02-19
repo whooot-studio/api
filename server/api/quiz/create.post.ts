@@ -1,6 +1,6 @@
 import prisma from "~~/lib/prisma";
 import useAuth from "~/composables/auth";
-import { QuizCreateSchema } from "~/schema/quiz.schema";
+import { QuizSchema } from "~/schema/quiz.schema";
 
 export default defineEventHandler({
   onRequest: [
@@ -22,7 +22,7 @@ export default defineEventHandler({
         data: parsed,
         error,
         success,
-      } = QuizCreateSchema.safeParse({
+      } = QuizSchema.safeParse({
         title: body.title,
         description: body.description,
         image: body.image,

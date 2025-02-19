@@ -1,5 +1,5 @@
 import useAuth from "~/composables/auth";
-import { QuestionCreateSchema } from "~/schema/question.schema";
+import { QuestionSchema } from "~/schema/question.schema";
 import prisma from "~~/lib/prisma";
 
 export default defineEventHandler({
@@ -44,7 +44,7 @@ export default defineEventHandler({
         data: parsed,
         error,
         success,
-      } = QuestionCreateSchema.safeParse({
+      } = QuestionSchema.safeParse({
         type: body.type,
         title: body.title,
         choices: body.choices,
@@ -126,6 +126,8 @@ export default defineEventHandler({
           },
         },
       });
+
+      if (!question) throw new Error("Internal Server Error");
 
       return question;
     } catch (e) {

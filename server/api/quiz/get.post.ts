@@ -45,13 +45,13 @@ export default defineEventHandler({
             : undefined,
           games: include.includes("games")
             ? {
-                omit: {
-                  
-                },
+                omit: {},
               }
             : undefined,
         },
       });
+
+      if (!quiz) throw new Error("Not found");
 
       return quiz;
     } catch {
