@@ -1,5 +1,6 @@
 import prisma from "~~/lib/prisma";
 import useAuth from "~/composables/auth";
+import { QuizCreateSchema } from "~/schema/quiz.schema";
 
 export default defineEventHandler({
   onRequest: [
@@ -17,11 +18,23 @@ export default defineEventHandler({
 
       const body = await readBody(event);
 
+      const {
+        data: parsed,
+        error,
+        success,
+      } = QuizCreateSchema.safeParse({
+        title: body.title,
+        description: body.description,
+        image: body.image,
+      });
+      if (!success)
+        throw new Error("422 - Unprocessable Entity: " + error.message);
+
       const quiz = await prisma.quiz.create({
         data: {
-          title: body.title,
-          description: body.description,
-          image: body.image,
+          title: parsed.title,
+          description: parsed.description,
+          image: parsed.image,
           users: {
             connect: [{ id: user.id }],
           },
