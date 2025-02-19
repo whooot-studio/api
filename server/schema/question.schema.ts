@@ -21,7 +21,9 @@ export const choiceValidator = z
   .min(1, "Must not be empty")
   .max(255, "Must be at most 255 characters");
 
-export const choicesValidator = z.array(choiceValidator);
+export const choicesValidator = z
+  .array(choiceValidator)
+  .nonempty("Must not be empty");
 
 export const pointsValidator = z
   .number({
@@ -35,13 +37,15 @@ export const answerValidator = z
     required_error: "Answer is required",
   })
   .max(4096, "Must be at most 4096 characters");
-export const answersValidator = answerValidator.or(z.array(answerValidator));
+export const answersValidator = answerValidator.or(
+  z.array(answerValidator).nonempty("Must not be empty")
+);
 
 export const QuestionCreateSchema = z.object({
   type: typeValidator,
   title: titleValidator,
   choices: choicesValidator,
-  points: pointsValidator.optional(),
+  points: pointsValidator,
   answer: answersValidator,
 });
 export type QuestionCreateSchema = z.infer<typeof QuestionCreateSchema>;
