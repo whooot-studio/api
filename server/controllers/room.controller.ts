@@ -39,7 +39,7 @@ const rooms = new Map<string, Room>();
 export async function createRoom(quizId: string, delayMs: number) {
   const code = generateRandomCode();
 
-  const game = new Game(+quizId, delayMs);
+  const game = new Game(quizId, delayMs);
   rooms.set(code, {
     quiz: quizId,
     members: [],

@@ -1,34 +1,34 @@
-import quizController from "~/controllers/quiz.controller";
-import { Quiz } from "~/controllers/quiz.controller";
-
-export type Answer = {
-  answer: string;
-  answeredAt: Date;
-};
-
-export type Question = {
-  questionId: number;
-  questionedAt: Date;
-};
+import prisma from "~~/lib/prisma";
+import { Quiz, Question, GameAnswer, User } from "@prisma/client";
 
 /**
  * Game class
  */
 export class Game {
-  private _quiz: Quiz;
+  private _quiz: Quiz & {
+    questions: Question[];
+    users: User[];
+  };
   private _startedAt?: Date;
   private _endedAt?: Date;
   private _currentQuestionId?: number;
   private _questions: Map<number, Question> = new Map();
-  private _answers: Map<[string, number], Answer> = new Map();
+  private _answers: Map<[string, number], GameAnswer> = new Map();
 
   constructor(
-    public readonly quizId: number,
+    public readonly quizId: string,
     public readonly delayMs: number
   ) {}
 
   public async setup() {
-    const quiz = await quizController.getQuiz(this.quizId);
+    console.log("Setting up game for", this.quizId);
+    const quiz = await prisma.quiz.findUnique({
+      where: { id: this.quizId },
+      include: {
+        questions: true,
+        users: true,
+      },
+    });
     if (!quiz) throw new Error("Quiz not found");
 
     this._quiz = quiz;
@@ -95,31 +95,35 @@ export class Game {
     if (!question) throw new Error("Impossible");
 
     // Check if the question has been closed
-    const now = new Date();
-    if (now.getTime() - question.questionedAt.getTime() > this.delayMs)
-      throw new Error("Question closed");
+    // const now = new Date();
+    // if (now.getTime() - question.questionedAt.getTime() > this.delayMs)
+    //   throw new Error("Question closed");
 
-    this._answers.set([userId, questionId], { answer, answeredAt: now });
+    this._answers.set([userId, questionId], {
+      answer,
+      questionId: questionId.toString(),
+      playerId: userId,
+    } as GameAnswer);
   }
 
   public async getScore(userId: string) {
     let score = 0;
 
-    for (const [key_user_question, value_answer] of this._answers) {
-      const [userId, questionId] = key_user_question;
-      const question = this._questions.get(questionId);
-      if (!question) throw new Error("Impossible");
+    // for (const [key_user_question, value_answer] of this._answers) {
+    //   const [userId, questionId] = key_user_question;
+    //   const question = this._questions.get(questionId);
+    //   if (!question) throw new Error("Impossible");
 
-      const { answer } = this._quiz.questions[questionId];
+    //   const { answer } = this._quiz.questions[questionId];
 
-      if (value_answer.answer === answer)
-        score += Math.max(
-          this.delayMs -
-            (value_answer.answeredAt.getTime() -
-              question.questionedAt.getTime()),
-          0
-        );
-    }
+    //   if (value_answer.answer === answer)
+    //     score += Math.max(
+    //       this.delayMs -
+    //         (value_answer.answeredAt.getTime() -
+    //           question.questionedAt.getTime()),
+    //       0
+    //     );
+    // }
 
     return score;
   }

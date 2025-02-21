@@ -1,4 +1,5 @@
 import consola from "consola";
+import useAuth from "~/composables/auth";
 import roomController, {
   MalformedPayloadError,
 } from "~/controllers/room.controller";
@@ -7,6 +8,17 @@ const getRoomOfAdminSafe = safe(roomController.getRoomOfAdmin);
 const getRoomOfMemberSafe = safe(roomController.getRoomOfMember);
 
 export default defineWebSocketHandler({
+  async upgrade(request) {
+    const auth = useAuth();
+    const session = await auth.api.getSession({
+      headers: request.headers,
+    });
+
+    if (session) {
+      request.context.session = session.session;
+      request.context.user = session.user;
+    }
+  },
   async open(peer) {
     consola.info(`[Peer] ${peer.id} connected`);
   },
@@ -77,11 +89,16 @@ export default defineWebSocketHandler({
 
             consola.info(`[Room] ${peer.id} started game in ${code}`);
 
-            const { question, options } = game.currentQuestion;
+            console.log(game.currentQuestion);
+            await game.nextQuestion();
+            console.log(game.currentQuestion);
+
+            break;
+            const { title, choices } = game.currentQuestion;
             peer.publish(`room:${code}`, {
               action: "game:question:start",
-              question,
-              options,
+              question: title,
+              options: choices,
             });
 
             setTimeout(async () => {
