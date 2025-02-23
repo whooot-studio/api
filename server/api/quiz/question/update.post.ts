@@ -24,6 +24,11 @@ export default defineEventHandler({
       const quiz = await prisma.quiz.findUnique({
         where: {
           id: quizId,
+          users: {
+            some: {
+              id: user.id,
+            },
+          },
         },
         include: {
           users: true,
@@ -33,11 +38,6 @@ export default defineEventHandler({
         throw createError({
           statusCode: 404,
           statusMessage: "Not Found",
-        });
-      if (!quiz.users.some((u) => u.id === user.id))
-        throw createError({
-          statusCode: 403,
-          statusMessage: "Forbidden",
         });
 
       const {
@@ -102,6 +102,9 @@ export default defineEventHandler({
         return await prisma.question.update({
           where: {
             id: questionId,
+            quiz: {
+              id: quizId,
+            },
           },
           data: {
             type: parsed.type,

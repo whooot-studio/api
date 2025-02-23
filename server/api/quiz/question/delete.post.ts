@@ -19,29 +19,17 @@ export default defineEventHandler({
       const questionId = body.id;
       const quizId = body.quizId;
 
-      // Get the quiz to check if the user is in the users
-      const quiz = await prisma.quiz.findUnique({
-        where: {
-          id: quizId,
-        },
-        include: {
-          users: true,
-        },
-      });
-      if (!quiz)
-        throw createError({
-          statusCode: 404,
-          statusMessage: "Not Found",
-        });
-      if (!quiz.users.some((u) => u.id === user.id))
-        throw createError({
-          statusCode: 403,
-          statusMessage: "Forbidden",
-        });
-
       await prisma.question.delete({
         where: {
           id: questionId,
+          quiz: {
+            id: quizId,
+            users: {
+              some: {
+                id: user.id,
+              },
+            },
+          },
         },
       });
 

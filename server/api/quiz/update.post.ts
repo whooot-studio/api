@@ -37,7 +37,14 @@ export default defineEventHandler({
         throw new Error("422 - Unprocessable Entity: " + error.message);
 
       const quiz = await prisma.quiz.update({
-        where: { id: quizId },
+        where: {
+          id: quizId,
+          users: {
+            some: {
+              id: user.id,
+            },
+          },
+        },
         data: {
           title: parsed.title,
           description: parsed.description,
