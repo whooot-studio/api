@@ -161,6 +161,7 @@ model Game {
 
   startedAt DateTime?
   endedAt   DateTime?
+  status    String    @default("idle") // idle, started, ended
 
   answers      GameAnswer[]
   participants GameParticipant[]
