@@ -24,11 +24,11 @@ model User {
   sessions      Session[]
   accounts      Account[]
 
-  members     Member[]
-  invitations Invitation[]
-  quizzes     Quiz[]
-  games       Game[]
-  answers     GameAnswer[]
+  members        Member[]
+  invitations    Invitation[]
+  quizzes        Quiz[]
+  games          Game[]
+  participations GameParticipant[]
 
   @@map("user")
 }
@@ -151,29 +151,57 @@ model Question {
 }
 
 model Game {
-  id        String       @id @default(cuid())
-  quizId    String
-  quiz      Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  hostId    String
-  host      User         @relation(fields: [hostId], references: [id], onDelete: Cascade)
-  startedAt DateTime
-  endedAt   DateTime
-  answers   GameAnswer[]
+  id String @id @default(cuid())
+
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  hostId String
+  host   User   @relation(fields: [hostId], references: [id], onDelete: Cascade)
+
+  startedAt DateTime?
+  endedAt   DateTime?
+
+  answers      GameAnswer[]
+  participants GameParticipant[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
 
   @@map("game")
 }
 
+model GameParticipant {
+  id     String @id @default(cuid())
+  gameId String
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  username String
+  image    String?
+
+  userId  String?
+  user    User?        @relation(fields: [userId], references: [id])
+  answers GameAnswer[]
+
+  @@map("game_participant")
+}
+
 model GameAnswer {
-  id         String   @id @default(cuid())
-  gameId     String
-  game       Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  playerId   String
-  player     User     @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  id String @id @default(cuid())
+
+  gameId String
+  game   Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  playerId String
+  player   GameParticipant @relation(fields: [playerId], references: [id], onDelete: Cascade)
+
   questionId String
   question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answer     String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+
+  answer String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("game_answer")
 }
