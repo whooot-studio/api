@@ -216,6 +216,19 @@ export default defineWebSocketHandler({
           action: "meta:close",
         });
 
+        const game = await prisma.game.findUnique({
+          where: {
+            id: gameId,
+          },
+        });
+        if (game?.status === "idle") {
+          await prisma.game.delete({
+            where: {
+              id: gameId,
+            },
+          });
+        }
+
         return;
       }
 
@@ -234,11 +247,16 @@ export default defineWebSocketHandler({
         },
       });
 
-      await prisma.gameParticipant.delete({
-        where: {
-          id: participant.id,
-        },
-      });
+      await prisma.gameParticipant
+        .delete({
+          where: {
+            id: participant.id,
+          },
+        })
+        .catch((e: any) => {
+          if (e.code === "P2025" || e.code === "P2016") return;
+          throw e;
+        });
     } catch (error) {
       consola.error(error);
     }
