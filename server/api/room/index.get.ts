@@ -169,17 +169,17 @@ export default defineWebSocketHandler({
 
         case "interact:emote":
           {
-            // const emote = data.emote;
-            // if (!emote)
-            //   throw new MalformedPayloadError(
-            //     "Action 'interact:emote' requires an 'emote'"
-            //   );
-            // const code = await roomController.getRoomOfMember(peer.id);
-            // consola.info(`[Room] ${peer.id} emoted ${emote} in ${code}`);
-            // peer.publish(`room:${code}`, {
-            //   action: "interact:emote",
-            //   emote,
-            // });
+            const code = data.code;
+            if (!code) throw new Error("Missing code");
+
+            const emote = data.emote;
+            if (!emote) throw new Error("Missing emote");
+
+            const gameId = codeStore.get(code);
+            peer.publish(`room:${gameId}`, {
+              action: "interact:emote",
+              emote,
+            });
           }
           break;
 
