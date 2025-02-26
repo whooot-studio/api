@@ -169,7 +169,7 @@ export default defineWebSocketHandler({
 
         case "interact:emote":
           {
-            const code = data.code;
+            const code = peer.context.code as string | undefined;
             if (!code) throw new Error("Missing code");
 
             const emote = data.emote;
