@@ -134,6 +134,40 @@ export default defineWebSocketHandler({
 
         case "game:start":
           {
+            const code = peer.context.code as string | undefined;
+            if (!code) throw new Error("Missing code");
+
+            consola.info(`[Room] ${peer.id} started game in ${code}`);
+
+            // Ensure peer is admin
+            const admin = peer.context.admin as boolean | undefined;
+            if (!admin) throw new Error("Unauthorized");
+
+            const gameId = codeStore.get(code);
+            const game = await prisma.game.findUnique({
+              where: {
+                id: gameId,
+              },
+              select: {
+                status: true,
+              },
+            });
+
+            if (game?.status !== "idle") return;
+
+            await prisma.game.update({
+              where: {
+                id: gameId,
+              },
+              data: {
+                status: "started",
+              },
+            });
+
+            peer.publish(`room:${gameId}`, {
+              action: "game:start",
+            });
+
             // const code = data.code; // TODO: Validate code
             // if (!code)
             //   throw new MalformedPayloadError(
