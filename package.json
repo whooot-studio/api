@@ -2,6 +2,7 @@
   "name": "@whooot/api",
   "private": true,
   "version": "0.2.1",
+  "type": "module",
   "description": "Whooot! - Free, Open-Source, Party Quiz",
   "scripts": {
     "start:prod": "prisma migrate deploy && node .output/server/index.mjs",
@@ -13,14 +14,19 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "test": "vitest",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage"
   },
   "devDependencies": {
     "@types/randomstring": "^1.3.0",
-    "crossws": "^0.3.3",
-    "nitropack": "^2.10.4",
+    "crossws": "^0.3.4",
+    "nitropack": "^2.11.5",
     "prisma": "^6.3.0",
-    "tsx": "^4.19.2"
+    "tsx": "^4.19.3",
+    "vitest": "^3.0.8",
+    "vitest-mock-extended": "^3.0.1"
   },
   "repository": {
     "type": "git",
