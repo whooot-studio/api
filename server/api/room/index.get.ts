@@ -69,7 +69,7 @@ export default defineWebSocketHandler({
             const participant = await game.join({
               userId: user?.id,
               username,
-              image,
+              image: image || (peer.context.user as User | undefined)?.image,
             });
             peer.context.participant = participant;
             peer.context.code = code;
