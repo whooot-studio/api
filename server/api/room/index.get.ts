@@ -1,11 +1,9 @@
-import type { Game, GameParticipant } from "@prisma/client";
+import type { GameParticipant } from "@prisma/client";
 import type { User } from "better-auth";
 import consola from "consola";
-import random from "randomstring";
 import useAuth from "~/composables/auth";
+import { Game as GameClass } from "~~/lib/game";
 import prisma from "~~/lib/prisma";
-
-const codeStore = new Map<string, string>(); // code -> gameId
 
 export default defineWebSocketHandler({
   async upgrade(request) {
@@ -39,36 +37,18 @@ export default defineWebSocketHandler({
             const quizId = data.quiz;
             if (!quizId) return;
 
-            // Create game
-            const game = await prisma.game.create({
-              data: {
-                quiz: {
-                  connect: {
-                    id: quizId,
-                  },
-                },
-                host: {
-                  connect: {
-                    id: user.id,
-                  },
-                },
-              },
+            const game = new GameClass({
+              quizId,
+              adminId: user.id,
             });
 
-            // Create code
-            const code = random.generate({
-              length: 8,
-              charset: "alphanumeric",
-              capitalization: "uppercase",
-            });
+            await game.setup();
 
-            // Store information
-            codeStore.set(code, game.id);
-            peer.context.code = code;
+            peer.context.code = game.code;
             peer.context.admin = true;
 
             peer.subscribe(`room:${game.id}`);
-            peer.send({ action: "meta:code", code });
+            peer.send({ action: "meta:code", code: game.code });
           }
           break;
 
@@ -80,41 +60,23 @@ export default defineWebSocketHandler({
             const { username, image } = data;
             if (!username) throw new Error("Missing username");
 
-            const gameId = codeStore.get(code);
-            if (!gameId) throw new Error("Invalid code");
+            const game = GameClass.findGameByCode(code);
+            if (!game) throw new Error("Invalid code");
 
             if (peer.context.participant) throw new Error("Already joined");
 
             // Create participant game
-            const participant = await prisma.gameParticipant.create({
-              data: {
-                game: {
-                  connect: {
-                    id: gameId,
-                  },
-                },
-                user: user
-                  ? {
-                      connect: {
-                        id: user.id,
-                      },
-                    }
-                  : undefined,
-                username,
-                image,
-              },
-              select: {
-                id: true,
-                username: true,
-                image: true,
-              },
+            const participant = await game.join({
+              userId: user?.id,
+              username,
+              image,
             });
             peer.context.participant = participant;
             peer.context.code = code;
 
             const participants = await prisma.gameParticipant.findMany({
               where: {
-                gameId,
+                gameId: game.id,
               },
               select: {
                 id: true,
@@ -124,11 +86,11 @@ export default defineWebSocketHandler({
             });
 
             peer.send({ action: "members:all", members: participants });
-            peer.publish(`room:${gameId}`, {
+            peer.publish(`room:${game.id}`, {
               action: "members:join",
               member: participant,
             });
-            peer.subscribe(`room:${gameId}`);
+            peer.subscribe(`room:${game.id}`);
           }
           break;
 
@@ -143,61 +105,121 @@ export default defineWebSocketHandler({
             const admin = peer.context.admin as boolean | undefined;
             if (!admin) throw new Error("Unauthorized");
 
-            const gameId = codeStore.get(code);
-            const game = await prisma.game.findUnique({
-              where: {
-                id: gameId,
-              },
-              select: {
-                status: true,
-              },
+            const game = GameClass.findGameByCode(code);
+            if (!game) throw new Error("Game not found");
+            if (game.status !== "idle") throw new Error("Game already started");
+
+            await game.start();
+
+            peer.send({
+              action: "game:start",
             });
-
-            if (game?.status !== "idle") return;
-
-            await prisma.game.update({
-              where: {
-                id: gameId,
-              },
-              data: {
-                status: "started",
-              },
-            });
-
-            peer.publish(`room:${gameId}`, {
+            peer.publish(`room:${game.id}`, {
               action: "game:start",
             });
 
-            // const code = data.code; // TODO: Validate code
-            // if (!code)
-            //   throw new MalformedPayloadError(
-            //     "Action 'game:start' requires a 'code'"
-            //   );
-            // const room = await roomController.getRoom(code);
-            // if (!room) return;
-            // const admin = await roomController.getAdmin(code);
-            // if (!admin || admin.id !== peer.id) return;
-            // const game = room.game;
-            // await game.start();
-            // peer.publish(`room:${code}`, {
-            //   action: "game:start",
-            // });
-            // consola.info(`[Room] ${peer.id} started game in ${code}`);
-            // console.log(game.currentQuestion);
-            // await game.nextQuestion();
-            // console.log(game.currentQuestion);
-            // break;
-            // const { title, choices } = game.currentQuestion;
-            // peer.publish(`room:${code}`, {
-            //   action: "game:question:start",
-            //   question: title,
-            //   options: choices,
-            // });
-            // setTimeout(async () => {
-            //   peer.publish(`room:${code}`, {
-            //     action: "game:question:stop",
-            //   });
-            // }, game.delayMs);
+            peer.send({
+              action: "game:quiz",
+              questions: game.quiz.questions,
+            });
+
+            peer.send({
+              action: "game:question",
+              question: {
+                title: game.current.question.title,
+                choices: game.current.question.choices,
+              },
+              hasPrevious: game.hasPrevious(),
+              hasNext: game.hasNext(),
+            });
+            peer.publish(`room:${game.id}`, {
+              action: "game:question",
+              question: {
+                title: game.current.question.title,
+                choices: game.current.question.choices,
+              },
+            });
+          }
+          break;
+
+        case "game:next":
+          {
+            const code = peer.context.code as string | undefined;
+            if (!code) throw new Error("Missing code");
+
+            const admin = peer.context.admin as boolean | undefined;
+            if (!admin) throw new Error("Unauthorized");
+
+            const game = GameClass.findGameByCode(code);
+            if (!game) throw new Error("Game not found");
+            if (game.status !== "started") throw new Error("Game not started");
+
+            if (game.hasNext()) {
+              await game.next();
+
+              peer.send({
+                action: "game:question",
+                question: {
+                  title: game.current.question.title,
+                  choices: game.current.question.choices,
+                },
+                hasPrevious: game.hasPrevious(),
+                hasNext: game.hasNext(),
+              });
+              peer.publish(`room:${game.id}`, {
+                action: "game:question",
+                question: {
+                  title: game.current.question.title,
+                  choices: game.current.question.choices,
+                },
+              });
+            } else {
+              await game.end();
+
+              peer.send({
+                action: "game:end",
+              });
+              peer.publish(`room:${game.id}`, {
+                action: "game:end",
+              });
+            }
+          }
+          break;
+
+        case "game:previous":
+          {
+            const code = peer.context.code as string | undefined;
+            if (!code) throw new Error("Missing code");
+
+            const admin = peer.context.admin as boolean | undefined;
+            if (!admin) throw new Error("Unauthorized");
+
+            const game = GameClass.findGameByCode(code);
+            if (!game) throw new Error("Game not found");
+            if (game.status !== "started") throw new Error("Game not started");
+
+            if (game.hasPrevious()) {
+              await game.previous();
+
+              peer.send({
+                action: "game:question",
+                question: {
+                  title: game.current.question.title,
+                  choices: game.current.question.choices,
+                },
+                hasPrevious: game.hasPrevious(),
+                hasNext: game.hasNext(),
+              });
+              peer.publish(`room:${game.id}`, {
+                action: "game:question",
+                question: {
+                  title: game.current.question.title,
+                  choices: game.current.question.choices,
+                },
+              });
+            } else {
+              throw new Error("No previous question");
+            }
           }
           break;
 
@@ -209,7 +231,9 @@ export default defineWebSocketHandler({
             const emote = data.emote;
             if (!emote) throw new Error("Missing emote");
 
-            const gameId = codeStore.get(code);
+            const gameId = GameClass.findIdByCode(code);
+            if (!gameId) throw new Error("Invalid code");
+
             peer.publish(`room:${gameId}`, {
               action: "interact:emote",
               emote,
@@ -240,29 +264,17 @@ export default defineWebSocketHandler({
       const code = peer.context.code as string | undefined;
       if (!code) return;
 
-      const gameId = codeStore.get(code);
+      const game = GameClass.findGameByCode(code);
+      if (!game) return;
 
       const isAdmin = peer.context.admin as boolean | undefined;
       if (isAdmin) {
-        codeStore.delete(code);
-        peer.unsubscribe(`room:${gameId}`);
-        peer.publish(`room:${gameId}`, {
+        peer.unsubscribe(`room:${game.id}`);
+        peer.publish(`room:${game.id}`, {
           action: "meta:close",
         });
 
-        const game = await prisma.game.findUnique({
-          where: {
-            id: gameId,
-          },
-        });
-        if (game?.status === "idle") {
-          await prisma.game.delete({
-            where: {
-              id: gameId,
-            },
-          });
-        }
-
+        await game.end();
         return;
       }
 
@@ -271,8 +283,8 @@ export default defineWebSocketHandler({
         | undefined;
       if (!participant) return;
 
-      peer.unsubscribe(`room:${gameId}`);
-      peer.publish(`room:${gameId}`, {
+      peer.unsubscribe(`room:${game.id}`);
+      peer.publish(`room:${game.id}`, {
         action: "members:leave",
         member: {
           id: participant.id,
@@ -280,17 +292,6 @@ export default defineWebSocketHandler({
           image: participant.image,
         },
       });
-
-      await prisma.gameParticipant
-        .delete({
-          where: {
-            id: participant.id,
-          },
-        })
-        .catch((e: any) => {
-          if (e.code === "P2025" || e.code === "P2016") return;
-          throw e;
-        });
     } catch (error) {
       consola.error(error);
     }
