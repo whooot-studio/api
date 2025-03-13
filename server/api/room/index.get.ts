@@ -74,18 +74,10 @@ export default defineWebSocketHandler({
             peer.context.participant = participant;
             peer.context.code = code;
 
-            const participants = await prisma.gameParticipant.findMany({
-              where: {
-                gameId: game.id,
-              },
-              select: {
-                id: true,
-                username: true,
-                image: true,
-              },
+            peer.send({
+              action: "members:all",
+              members: Array.from(game.participants.values()),
             });
-
-            peer.send({ action: "members:all", members: participants });
             peer.publish(`room:${game.id}`, {
               action: "members:join",
               member: participant,
@@ -282,6 +274,8 @@ export default defineWebSocketHandler({
         | GameParticipant
         | undefined;
       if (!participant) return;
+
+      await game.leave(participant.id);
 
       peer.unsubscribe(`room:${game.id}`);
       peer.publish(`room:${game.id}`, {
