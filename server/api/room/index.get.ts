@@ -78,6 +78,28 @@ export default defineWebSocketHandler({
               action: "members:all",
               members: Array.from(game.participants.values()),
             });
+
+            if (game.status === "started") {
+              peer.send({
+                action: "game:start",
+              });
+
+              peer.send({
+                action: "game:quiz",
+                questions: game.quiz.questions,
+              });
+
+              peer.send({
+                action: "game:question",
+                question: {
+                  title: game.current.question.title,
+                  choices: game.current.question.choices,
+                },
+                hasPrevious: game.hasPrevious(),
+                hasNext: game.hasNext(),
+              });
+            }
+
             peer.publish(`room:${game.id}`, {
               action: "members:join",
               member: participant,
