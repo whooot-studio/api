@@ -3,7 +3,6 @@ import type { User } from "better-auth";
 import consola from "consola";
 import useAuth from "~/composables/auth";
 import { Game as GameClass } from "~~/lib/game";
-import prisma from "~~/lib/prisma";
 
 export default defineWebSocketHandler({
   async upgrade(request) {

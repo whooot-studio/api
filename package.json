@@ -15,7 +15,7 @@
     "db:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
     "db:seed": "tsx prisma/seed.ts",
-    "test": "vitest",
+    "test": "vitest --no-watch",
     "test:watch": "vitest --watch",
     "test:coverage": "vitest --coverage"
   },
