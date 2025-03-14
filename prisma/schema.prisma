@@ -204,5 +204,6 @@ model GameAnswer {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  @@unique([playerId, questionId])
   @@map("game_answer")
 }
