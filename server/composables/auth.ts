@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { genericOAuth, openAPI, organization } from "better-auth/plugins";
+import { genericOAuth, organization } from "better-auth/plugins";
 import useClient from "./client";
 
 const prisma = new PrismaClient();
@@ -82,7 +82,6 @@ export default function useAuth() {
       }),
 
       organization(),
-      openAPI(),
     ],
   });
 
