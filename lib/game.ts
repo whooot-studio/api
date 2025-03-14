@@ -1,6 +1,6 @@
 import random from "randomstring";
 import prisma from "./prisma";
-import type { Question, Quiz } from "@prisma/client";
+import type { GameAnswer, Question, Quiz } from "@prisma/client";
 import consola from "consola";
 
 interface GameConstructor {
@@ -232,5 +232,53 @@ export class Game {
     if (!this.participants.has(playerId)) throw new Error("Player not found");
 
     this.participants.delete(playerId);
+  }
+
+  /* ------------------ */
+
+  // Map<"playerId-questionId", answer>
+  public answers: Map<`${string}-${string}`, GameAnswer> = new Map();
+
+  public async answer(playerId: string, answer: string) {
+    if (!this.id) throw new Error("Game not setup");
+    if (this.status !== "started") throw new Error("Game not started");
+
+    const participant = this.participants.get(playerId);
+    if (!participant) throw new Error("Player not found");
+
+    if (!this.current.question) throw new Error("No question");
+
+    if (!this.current.question.choices.includes(answer))
+      throw new Error("Invalid answer");
+
+    const gameAnswer = await prisma.gameAnswer.upsert({
+      create: {
+        game: {
+          connect: {
+            id: this.id,
+          },
+        },
+        player: {
+          connect: {
+            id: playerId,
+          },
+        },
+        question: {
+          connect: {
+            id: this.current.question.id,
+          },
+        },
+        answer,
+      },
+      update: {
+        answer,
+      },
+      where: {
+        id:
+          this.answers.get(`${playerId}-${this.current.question.id}`)?.id || "",
+      },
+    });
+
+    this.answers.set(`${playerId}-${this.current.question.id}`, gameAnswer);
   }
 }
