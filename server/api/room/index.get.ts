@@ -236,6 +236,31 @@ export default defineWebSocketHandler({
           }
           break;
 
+        case "game:answer":
+          {
+            const code = peer.context.code as string | undefined;
+            if (!code) throw new Error("Missing code");
+
+            const participant = peer.context.participant as
+              | GameParticipant
+              | undefined;
+            if (!participant) throw new Error("Unauthorized");
+
+            const answer = data.answer;
+            if (answer === undefined) throw new Error("Missing answer");
+
+            const game = GameClass.findGameByCode(code);
+            if (!game) throw new Error("Game not found");
+            if (game.status !== "started") throw new Error("Game not started");
+
+            await game.answer(participant.id, answer);
+
+            peer.send({
+              action: "game:answer:confirm",
+            });
+          }
+          break;
+
         case "interact:emote":
           {
             const code = peer.context.code as string | undefined;
